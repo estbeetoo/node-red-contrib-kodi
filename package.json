@@ -29,5 +29,9 @@
   "homepage": "https://github.com/estbeetoo/node-red-contrib-kodi#readme",
   "scripts": {
     "test": "echo \\\"Error: no test specified\\\" && exit 1"
+  },
+  "dependencies": {
+    "kodi-ws": "^2.3.0",
+    "machina": "^1.1.2"
   }
 }

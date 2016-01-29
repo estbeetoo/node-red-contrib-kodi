@@ -1,18 +1,18 @@
-<script type="text/x-red" data-template-name="globalcache-controller">
+<script type="text/x-red" data-template-name="kodi-controller">
     <div class="form-row">
         <label for="node-config-input-name"><i class="icon-tag"></i> Name</label>
         <input type="text" id="node-config-input-name" placeholder="Name">
     </div>
     <div class="form-row">
-        <label for="node-config-input-host"><i class="icon-bookmark"></i> gc Host</label>
+        <label for="node-config-input-host"><i class="icon-bookmark"></i> kodi Host</label>
         <input type="text" id="node-config-input-host">
     </div>
     <div class="form-row">
-        <label for="node-config-input-port"><i class="icon-bookmark"></i> gc Port</label>
+        <label for="node-config-input-port"><i class="icon-bookmark"></i> kodi Port</label>
         <input type="text" id="node-config-input-port">
     </div>
     <div class="form-row">
-        <label for="node-config-input-mode"><i class="icon-bookmark"></i> gc Mode</label>
+        <label for="node-config-input-mode"><i class="icon-bookmark"></i> kodi Mode</label>
         <select id="node-config-input-mode">
             <option value="request-disconnect">request-disconnect</option>
             <option value="always-connected">always-connected</option>
@@ -20,7 +20,7 @@
     </div>
 </script>
 
-<script type="text/x-red" data-template-name="globalcache-out">
+<script type="text/x-red" data-template-name="kodi-out">
     <div class="form-row">
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
@@ -38,8 +38,8 @@
         <input type="text" id="node-input-output">
     </div>
     <div class="form-row">
-        <label for="node-input-gccommand"><i class="icon-bookmark"></i> Command</label>
-        <select id="node-input-gccommand">
+        <label for="node-input-kodicommand"><i class="icon-bookmark"></i> Command</label>
+        <select id="node-input-kodicommand">
             <option value="empty">no cmd</option>
             <option value="sendir">infrared</option>
             <option value="setstate">relay</option>
@@ -47,7 +47,7 @@
     </div>
 </script>
 
-<script type="text/x-red" data-template-name="globalcache-in">
+<script type="text/x-red" data-template-name="kodi-in">
     <div class="form-row">
         <label for="node-input-name"><i class="icon-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
@@ -60,16 +60,16 @@
 
 </script>
 
-<script type="text/x-red" data-help-name="globalcache-out">
+<script type="text/x-red" data-help-name="kodi-out">
     <p>
-        Use this to <b>send</b> telegrams via an gc daemon connected to a Global Cache device.<br/>
+        Use this to <b>send</b> telegrams via an kodi daemon connected to a Kodi player.<br/>
     	<b>msg.payload</b> must be a JavaScript object or a string
     </p>
     <p>
         For example: <code>setstate,1:1,1</code> or <code>{"serial": "setstate,1:1,1"}</code>
     </p>
     <p>
-        If one specify three parameters: unit_number (optional, in fact), output and command, than all incoming string commands will be transformed into GlobalCache` packet: <code>[command],[unit_number]:[output],[command]</code>
+        If one specify three parameters: unit_number (optional, in fact), output and command, than all incoming string commands will be transformed into Kodi` packet: <code>[command],[unit_number]:[output],[command]</code>
     <p>
     <p>
         For example, let configs be:
@@ -81,7 +81,7 @@
         <br/>
         And command (inside of <code>msg.payload</code>) is <code>1,38000,1,1,105,84,22,3800</code>.
         <br/>
-        Than ready packet (it will be sent into GC device) looks like:
+        Than ready packet (it will be sent into Kodi player) looks like:
         <code>sendir,1:3,1,38000,1,1,105,84,22,3800</code>
     </p>
     <br/>
@@ -94,12 +94,12 @@
     </p>
 </script>
 
-<script type="text/x-red" data-help-name="globalcache-in">
-    <p>Use this to <b>inject</b> flows from GlobalCache device<br/>
+<script type="text/x-red" data-help-name="kodi-in">
+    <p>Use this to <b>inject</b> flows from Kodi player<br/>
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('globalcache-controller', {
+    RED.nodes.registerType('kodi-controller', {
         category: 'config',
         defaults: {
             name: {value: ""},
@@ -108,45 +108,45 @@
             mode: {value: "request-disconnect", required: true}
         },
         label: function () {
-            return (this.name || 'gc' ) + "@" + this.host + ":" + this.port;
+            return (this.name || 'kodi' ) + "@" + this.host + ":" + this.port;
         }
     });
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('globalcache-out', {
+    RED.nodes.registerType('kodi-out', {
         category: 'output',
         color: '#26b050',
         defaults: {
             name: {value: ""},
-            controller: {value: "", type: "globalcache-controller"},
+            controller: {value: "", type: "kodi-controller"},
             unit_number: {value: "1", required: false},
             output: {value: "1", required: false},
-            gccommand: {value: "empty", required: true}
+            kodicommand: {value: "empty", required: true}
         },
         inputs: 1,
         outputs: 0,
         align: 'right',
         icon: "bridge-dash.png",
         label: function () {
-            return (this.groupaddr || this.name || "gc");
+            return (this.groupaddr || this.name || "kodi");
         }
     });
 </script>
 
 <script type="text/javascript">
-    RED.nodes.registerType('globalcache-in', {
+    RED.nodes.registerType('kodi-in', {
         category: 'input',
         color: '#26b050',
         defaults: {
             name: {value: ""},
-            controller: {value: "", type: "globalcache-controller"}
+            controller: {value: "", type: "kodi-controller"}
         },
         inputs: 0,
         outputs: 1,
         icon: "bridge-dash.png",
         label: function () {
-            return (this.groupaddr || this.name || "gc");
+            return (this.groupaddr || this.name || "kodi");
         }
     });
 </script>

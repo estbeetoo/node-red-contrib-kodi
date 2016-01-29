@@ -1,7 +1,7 @@
 node-red-contrib-kodi
 ========================
 
-A <a href="http://nodered.org" target="_new">Node-RED</a> node to communicate [kodi TCP](https://en.wikipedia.org/wiki/kodi#Protocol_versions).
+A <a href="http://nodered.org" target="_new">Node-RED</a> node to communicate [kodi](https://kodi.tv).
 
 Install
 -------
