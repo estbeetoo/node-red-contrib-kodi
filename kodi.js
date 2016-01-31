@@ -164,6 +164,8 @@ module.exports = function (RED) {
             controllerNode.initializeKodiConnection(function (fsm) {
                 try {
                     DEBUG && RED.comms.publish("debug", {name: node.name, msg: "send:  " + JSON.stringify(data)});
+                    data.cmd = data.cmd || data.method;
+                    data.args = data.args || data.params;
                     fsm.connection.run(data.cmd, data.args).then(function () {
                         callback && callback(err);
                     }, function (err) {
