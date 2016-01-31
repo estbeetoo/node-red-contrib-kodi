@@ -28,7 +28,7 @@ module.exports = function (RED) {
          */
         this.initializeKodiConnection = function (handler) {
             if (node.kodi) {
-                RED.comms.publish("debug", {
+                DEBUG && RED.comms.publish("debug", {
                     name: node.name,
                     msg: 'already configured connection to Kodi player at ' + config.host + ':' + config.port
                 });
@@ -54,7 +54,7 @@ module.exports = function (RED) {
                 });
             }
             node.kodi.connect();
-            RED.comms.publish("debug", {
+            DEBUG && RED.comms.publish("debug", {
                 name: node.name,
                 msg: 'Kodi: successfully connected to ' + config.host + ':' + config.port
             });
@@ -86,7 +86,7 @@ module.exports = function (RED) {
         //node.log('new Kodi-out, config: ' + util.inspect(config));
         //
         this.on("input", function (msg) {
-            RED.comms.publish("debug", {name: node.name, msg: 'kodiout.onInput msg[' + util.inspect(msg) + ']'});
+            DEBUG && RED.comms.publish("debug", {name: node.name, msg: 'kodiout.onInput msg[' + util.inspect(msg) + ']'});
             //node.log('kodiout.onInput msg[' + util.inspect(msg) + ']');
             if (!(msg && msg.hasOwnProperty('payload'))) return;
             var payload = msg.payload;
@@ -157,13 +157,13 @@ module.exports = function (RED) {
         });
 
         this.send = function (data, callback) {
-            RED.comms.publish("debug", {name: node.name, msg: 'send data[' + JSON.stringify(data) + ']'});
+            DEBUG && RED.comms.publish("debug", {name: node.name, msg: 'send data[' + JSON.stringify(data) + ']'});
             //node.log('send data[' + data + ']');
             // init a new one-off connection from the effectively singleton KodiController
             // there seems to be no way to reuse the outgoing conn in adreek/node-kodijs
             controllerNode.initializeKodiConnection(function (fsm) {
                 try {
-                    RED.comms.publish("debug", {name: node.name, msg: "send:  " + JSON.stringify(data)});
+                    DEBUG && RED.comms.publish("debug", {name: node.name, msg: "send:  " + JSON.stringify(data)});
                     fsm.connection.run(data.cmd, data.args).then(function () {
                         callback && callback(err);
                     }, function (err) {
@@ -221,7 +221,7 @@ module.exports = function (RED) {
         }
 
         node.receiveNotification = function (notification, data) {
-            RED.comms.publish("debug", {name: node.name, msg: 'kodi event data[' + JSON.stringify(data) + ']'});
+            DEBUG && RED.comms.publish("debug", {name: node.name, msg: 'kodi event data[' + JSON.stringify(data) + ']'});
             node.send({
                 topic: 'kodi',
                 payload: {
