@@ -47,14 +47,14 @@
     	<b>msg.payload</b> must be a JavaScript object or a string
     </p>
     <p>
-        For example, simple string (command does not hav arguments): <code>Input.Home</code>
+        For example, simple string (command does not hav arguments): <code>Input.Home</code><br/>
         Or Javascript object (command + parameters):
-        <pre>{
-            "cmd": "Player.Stop",
-            "args" :{
-                "playerid": 0
-            }
-        }</pre>
+<pre>{
+    "cmd": "Player.Stop",
+    "args" :{
+        "playerid": 0
+    }
+}</pre>
     </p>
     <p>Read more about official Kodi's JSON-RPC api here: http://kodi.wiki/view/JSON-RPC_API/v6</p>
 </script>
@@ -63,20 +63,20 @@
     <p>
         Use this to <b>inject</b> flows from Kodi player<br/>
         Kodi notification being injected as a Javascript object, for example:
-        <pre>{
-                "data": {
-                    "data": {
-                        "item": {
-                            "title": "Lounge FM Terrace ()",
-                            "type": "song"
-                        },
-                        "playlistid": 0,
-                        "position": 0
-                    },
-                    "sender": "xbmc"
-                },
-                "notification": "Playlist.OnAdd"
-            }</pre>
+<pre>{
+    "data": {
+        "data": {
+            "item": {
+                "title": "Lounge FM Terrace ()",
+                "type": "song"
+            },
+            "playlistid": 0,
+            "position": 0
+        },
+        "sender": "xbmc"
+    },
+    "notification": "Playlist.OnAdd"
+}</pre>
     </p>
     <p>Read more about official Kodi's JSON-RPC api here: http://kodi.wiki/view/JSON-RPC_API/v6</p>
 </script>
