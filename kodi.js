@@ -9,7 +9,7 @@ var connectionFSM = require('./lib/connectionFSM.js');
 module.exports = function (RED) {
 
     /**
-     * ====== Globalcache-controller ================
+     * ====== Kodi-controller ================
      * Holds configuration for kodijs host+port,
      * initializes new kodijs connections
      * =======================================
@@ -32,38 +32,46 @@ module.exports = function (RED) {
                     name: node.name,
                     msg: 'already configured connection to Kodi player at ' + config.host + ':' + config.port
                 });
-                if (handler && (typeof handler === 'function'))
-                    handler(node.kodi);
+                if (handler && (typeof handler === 'function')) {
+                    if (node.kodi.connection)
+                        handler(node.kodi);
+                    else
+                        node.kodi.on('connected', function () {
+                            handler(node.kodi);
+                        });
+                }
                 return node.kodi;
             }
             node.log('configuring connection to Kodi player at ' + config.host + ':' + config.port);
-
             node.kodi = new connectionFSM({
                 host: config.host,
                 port: config.port,
                 debug: DEBUG
             });
-
-            connection.connect();
-
+            if (handler && (typeof handler === 'function')) {
+                node.kodi.on('connected', function () {
+                    handler(node.kodi);
+                });
+            }
+            node.kodi.connect();
             RED.comms.publish("debug", {
                 name: node.name,
                 msg: 'Kodi: successfully connected to ' + config.host + ':' + config.port
             });
-            if (handler && (typeof handler === 'function'))
-                handler(node.kodi);
+
             return node.kodi;
         };
         this.on("close", function () {
             node.log('disconnecting from kodijs server at ' + config.host + ':' + config.port);
             node.kodi && node.kodi.disconnect && node.kodi.disconnect();
+            node.kodi = null;
         });
     }
 
     RED.nodes.registerType("kodi-controller", KodiControllerNode);
 
     /**
-     * ====== Globalcache-out =======================
+     * ====== Kodi-out =======================
      * Sends outgoing Kodi player from
      * messages received via node-red flows
      * =======================================
@@ -71,12 +79,11 @@ module.exports = function (RED) {
     function KodiOut(config) {
         RED.nodes.createNode(this, config);
         this.name = config.name;
-        this.ctrl = RED.nodes.getNode(config.controller);
+        var controllerNode = RED.nodes.getNode(config.controller);
         this.unit_number = config.unit_number;
-        this.output = config.output;
         this.kodicommand = config.kodicommand;
         var node = this;
-        //node.log('new Globalcache-out, config: ' + util.inspect(config));
+        //node.log('new Kodi-out, config: ' + util.inspect(config));
         //
         this.on("input", function (msg) {
             RED.comms.publish("debug", {name: node.name, msg: 'kodiout.onInput msg[' + util.inspect(msg) + ']'});
@@ -88,8 +95,10 @@ module.exports = function (RED) {
             } else if (typeof(msg.payload) === "string") {
                 try {
                     payload = JSON.parse(msg.payload);
+                    if (typeof (payload) === 'number')
+                        payload = {cmd: msg.payload.toString()};
                 } catch (e) {
-                    payload = msg.payload.toString();
+                    payload = {cmd: msg.payload.toString()};
                 }
             }
             if (payload == null) {
@@ -97,14 +106,15 @@ module.exports = function (RED) {
                 return;
             }
 
-            if (node.output != null && node.kodicommand && node.kodicommand !== 'empty') {
-                if (msg.hasOwnProperty('format') && typeof(msg.format) === 'string' && (msg.format.toLowerCase() === 'ccf' || msg.format.toLowerCase() === 'hex') && typeof(payload) === 'string') {
-                    payload = helper.CCFtoKodi(payload, node.kodicommand.toString(), ((parseInt(node.unit_number) === 0 || isNaN(parseInt(node.unit_number))) ? '1' : node.unit_number.toString()), node.output, 1);
+            if (node.kodicommand && node.kodicommand !== 'empty') {
+                try {
+                    payload = JSON.parse(node.kodicommand);
+                    if (typeof (payload) === 'number')
+                        payload = {cmd: node.kodicommand.toString()};
+                } catch (e) {
+                    payload = {cmd: node.kodicommand.toString()};
                 }
-                else if (typeof(payload) === 'string')
-                    payload = node.kodicommand.toString() + ',' + ((parseInt(node.unit_number) === 0 || isNaN(parseInt(node.unit_number))) ? '1' : node.unit_number.toString()) + ':' + node.output + ',' + payload;
             }
-
 
             node.send(payload, function (err) {
                 if (err) {
@@ -133,26 +143,30 @@ module.exports = function (RED) {
             node.status({fill: "green", shape: "ring", text: "connecting"});
         }
 
+        controllerNode.initializeKodiConnection(function (fsm) {
+            if (fsm.connected)
+                nodeStatusConnected();
+            else
+                nodeStatusDisconnected();
+            fsm.off('connecting', nodeStatusConnecting);
+            fsm.on('connecting', nodeStatusConnecting);
+            fsm.off('connected', nodeStatusConnected);
+            fsm.on('connected', nodeStatusConnected);
+            fsm.off('disconnected', nodeStatusDisconnected);
+            fsm.on('disconnected', nodeStatusDisconnected);
+        });
+
         this.send = function (data, callback) {
-            RED.comms.publish("debug", {name: node.name, msg: 'send data[' + data + ']'});
+            RED.comms.publish("debug", {name: node.name, msg: 'send data[' + JSON.stringify(data) + ']'});
             //node.log('send data[' + data + ']');
             // init a new one-off connection from the effectively singleton KodiController
             // there seems to be no way to reuse the outgoing conn in adreek/node-kodijs
-            this.ctrl.initializeKodiConnection(function (connection) {
-                if (connection.connected)
-                    nodeStatusConnected();
-                else
-                    nodeStatusDisconnected();
-                connection.removeListener('connecting', nodeStatusConnecting);
-                connection.on('connecting', nodeStatusConnecting);
-                connection.removeListener('connected', nodeStatusConnected);
-                connection.on('connected', nodeStatusConnected);
-                connection.removeListener('disconnected', nodeStatusDisconnected);
-                connection.on('disconnected', nodeStatusDisconnected);
-
+            controllerNode.initializeKodiConnection(function (fsm) {
                 try {
                     RED.comms.publish("debug", {name: node.name, msg: "send:  " + JSON.stringify(data)});
-                    connection.send(data, function (err) {
+                    fsm.connection.run(data.cmd, data.args).then(function () {
+                        callback && callback(err);
+                    }, function (err) {
                         callback && callback(err);
                     });
                 }
@@ -179,20 +193,9 @@ module.exports = function (RED) {
         this.connection = null;
         var node = this;
         //node.log('new KodiIn, config: %j', config);
-        var kodijsController = RED.nodes.getNode(config.controller);
+        var controllerNode = RED.nodes.getNode(config.controller);
+
         /* ===== Node-Red events ===== */
-        this.on("input", function (msg) {
-            if (msg != null) {
-
-            }
-        });
-        this.on("close", function () {
-            if (node.receiveEvent && node.connection)
-                node.connection.removeListener('event', node.receiveEvent);
-            if (node.receiveStatus && node.connection)
-                node.connection.removeListener('status', node.receiveStatus);
-        });
-
         function nodeStatusConnecting() {
             node.status({fill: "green", shape: "ring", text: "connecting"});
         }
@@ -205,34 +208,42 @@ module.exports = function (RED) {
             node.status({fill: "red", shape: "dot", text: "disconnected"});
         }
 
-        node.receiveData = function (data) {
-            RED.comms.publish("debug", {name: node.name, msg: 'kodi event data[' + data.toString('hex') + ']'});
+        function bindNotificationListeners(connection) {
+            function getListenerForNotification(notification) {
+                return function (data) {
+                    node.receiveNotification(notification, data);
+                }
+            }
+
+            Object.keys(connection.schema.schema.notifications).forEach(function (method) {
+                connection.schema.schema.notifications[method](getListenerForNotification(method));
+            });
+        }
+
+        node.receiveNotification = function (notification, data) {
+            RED.comms.publish("debug", {name: node.name, msg: 'kodi event data[' + JSON.stringify(data) + ']'});
             node.send({
                 topic: 'kodi',
                 payload: {
-                    'data': data.toString()
+                    'notification': notification,
+                    'data': data
                 }
             });
         };
 
-//		this.on("error", function(msg) {});
+        controllerNode.initializeKodiConnection(function (fsm) {
+            bindNotificationListeners(fsm.connection);
 
-        /* ===== kodijs events ===== */
-        kodijsController.initializeKodiConnection(function (connection) {
-            node.connection = connection;
-            node.connection.removeListener('event', node.receiveData);
-            node.connection.on('data', node.receiveData);
-
-            if (node.connection.connected)
+            if (fsm.connected)
                 nodeStatusConnected();
             else
                 nodeStatusDisconnected();
-            node.connection.removeListener('connecting', nodeStatusConnecting);
-            node.connection.on('connecting', nodeStatusConnecting);
-            node.connection.removeListener('connected', nodeStatusConnected);
-            node.connection.on('connected', nodeStatusConnected);
-            node.connection.removeListener('disconnected', nodeStatusDisconnected);
-            node.connection.on('disconnected', nodeStatusDisconnected);
+            fsm.off('connecting', nodeStatusConnecting);
+            fsm.on('connecting', nodeStatusConnecting);
+            fsm.off('connected', nodeStatusConnected);
+            fsm.on('connected', nodeStatusConnected);
+            fsm.off('disconnected', nodeStatusDisconnected);
+            fsm.on('disconnected', nodeStatusDisconnected);
         });
     }
 
