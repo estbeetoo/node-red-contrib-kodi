@@ -86,7 +86,10 @@ module.exports = function (RED) {
         //node.log('new Kodi-out, config: ' + util.inspect(config));
         //
         this.on("input", function (msg) {
-            DEBUG && RED.comms.publish("debug", {name: node.name, msg: 'kodiout.onInput msg[' + util.inspect(msg) + ']'});
+            DEBUG && RED.comms.publish("debug", {
+                name: node.name,
+                msg: 'kodiout.onInput msg[' + util.inspect(msg) + ']'
+            });
             //node.log('kodiout.onInput msg[' + util.inspect(msg) + ']');
             if (!(msg && msg.hasOwnProperty('payload'))) return;
             var payload = msg.payload;
@@ -139,6 +142,10 @@ module.exports = function (RED) {
             node.status({fill: "red", shape: "dot", text: "disconnected"});
         }
 
+        function nodeStatusReconnect() {
+            node.status({fill: "yellow", shape: "ring", text: "reconnecting"});
+        }
+
         function nodeStatusConnecting() {
             node.status({fill: "green", shape: "ring", text: "connecting"});
         }
@@ -154,6 +161,8 @@ module.exports = function (RED) {
             fsm.on('connected', nodeStatusConnected);
             fsm.off('disconnected', nodeStatusDisconnected);
             fsm.on('disconnected', nodeStatusDisconnected);
+            fsm.off('reconnect', nodeStatusReconnect);
+            fsm.on('reconnect', nodeStatusReconnect);
         });
 
         this.send = function (data, callback) {
@@ -210,6 +219,10 @@ module.exports = function (RED) {
             node.status({fill: "red", shape: "dot", text: "disconnected"});
         }
 
+        function nodeStatusReconnect() {
+            node.status({fill: "yellow", shape: "ring", text: "reconnecting"});
+        }
+
         function bindNotificationListeners(connection) {
             function getListenerForNotification(notification) {
                 return function (data) {
@@ -223,7 +236,10 @@ module.exports = function (RED) {
         }
 
         node.receiveNotification = function (notification, data) {
-            DEBUG && RED.comms.publish("debug", {name: node.name, msg: 'kodi event data[' + JSON.stringify(data) + ']'});
+            DEBUG && RED.comms.publish("debug", {
+                name: node.name,
+                msg: 'kodi event data[' + JSON.stringify(data) + ']'
+            });
             node.send({
                 topic: 'kodi',
                 payload: {
@@ -246,6 +262,8 @@ module.exports = function (RED) {
             fsm.on('connected', nodeStatusConnected);
             fsm.off('disconnected', nodeStatusDisconnected);
             fsm.on('disconnected', nodeStatusDisconnected);
+            fsm.off('reconnect', nodeStatusReconnect);
+            fsm.on('reconnect', nodeStatusReconnect);
         });
     }
 
