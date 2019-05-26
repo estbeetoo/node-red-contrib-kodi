@@ -119,12 +119,18 @@ module.exports = function (RED) {
                 }
             }
 
-            node.send(payload, function (err) {
+            node.sendToKodi(payload, function (err, data) {
                 if (err) {
                     node.error('send error: ' + err);
                 }
                 if (typeof(msg.cb) === 'function')
                     msg.cb(err);
+                if(!err){
+                    node.send({
+                        topic: 'kodi',
+                        payload: data
+                    });
+                }
             });
 
         });
@@ -165,9 +171,9 @@ module.exports = function (RED) {
             fsm.on('reconnect', nodeStatusReconnect);
         });
 
-        this.send = function (data, callback) {
+        this.sendToKodi = function (data, callback) {
             DEBUG && RED.comms.publish("debug", {name: node.name, msg: 'send data[' + JSON.stringify(data) + ']'});
-            //node.log('send data[' + data + ']');
+            //node.log('sendToKodi data[' + data + ']');
             // init a new one-off connection from the effectively singleton KodiController
             // there seems to be no way to reuse the outgoing conn in adreek/node-kodijs
             controllerNode.initializeKodiConnection(function (fsm) {
@@ -175,8 +181,8 @@ module.exports = function (RED) {
                     DEBUG && RED.comms.publish("debug", {name: node.name, msg: "send:  " + JSON.stringify(data)});
                     data.cmd = data.cmd || data.method;
                     data.args = data.args || data.params;
-                    fsm.connection.run(data.cmd, data.args).then(function () {
-                        callback && callback();
+                    fsm.connection.run(data.cmd, data.args).then(function (data) {
+                        callback && callback(null, data);
                     }, function (err) {
                         callback && callback(err);
                     });
